@@ -17,14 +17,14 @@ specific language governing permissions and limitations
 under the License.
 */
 package org.apache.griffin.measure.datasource.connector.streaming
-
-import kafka.serializer.StringDecoder
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, _}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.InputDStream
-import org.apache.spark.streaming.kafka.KafkaUtils
+import org.apache.spark.streaming.kafka010.KafkaUtils
+import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
+import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
 
 import org.apache.griffin.measure.configuration.dqdefinition.DataConnectorParam
 import org.apache.griffin.measure.datasource.TimestampStorage
@@ -40,10 +40,8 @@ case class KafkaStreamingStringDataConnector(@transient sparkSession: SparkSessi
                                              streamingCacheClientOpt: Option[StreamingCacheClient]
                                             ) extends KafkaStreamingDataConnector {
 
-  type K = String
-  type KD = StringDecoder
-  type V = String
-  type VD = StringDecoder
+  type K = Any
+  type V = Any
 
   val valueColName = "value"
   val schema = StructType(Array(
@@ -51,13 +49,21 @@ case class KafkaStreamingStringDataConnector(@transient sparkSession: SparkSessi
   ))
 
   def createDStream(topicSet: Set[String]): InputDStream[OUT] = {
-    KafkaUtils.createDirectStream[K, V, KD, VD](ssc, kafkaConfig, topicSet)
+    KafkaUtils.createDirectStream[K, V](ssc,
+      PreferConsistent,
+      Subscribe[K, V](topicSet, kafkaConfig))
   }
 
   def transform(rdd: RDD[OUT]): Option[DataFrame] = {
     if (rdd.isEmpty) None else {
       try {
-        val rowRdd = rdd.map(d => Row(d._2))
+        val rowRdd = rdd.map(d => Row(d.value().toString))
+
+        rowRdd.foreach{ v: Row =>
+          println("Row")
+          println(v.toString())
+        }
+        println("########################")
         val df = sparkSession.createDataFrame(rowRdd, schema)
         Some(df)
       } catch {

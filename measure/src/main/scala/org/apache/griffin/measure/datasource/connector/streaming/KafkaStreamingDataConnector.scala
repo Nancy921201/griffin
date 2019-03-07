@@ -20,19 +20,21 @@ package org.apache.griffin.measure.datasource.connector.streaming
 
 import scala.util.{Failure, Success, Try}
 
-import kafka.serializer.Decoder
 import org.apache.spark.streaming.dstream.InputDStream
 
 import org.apache.griffin.measure.utils.ParamUtil._
 
+import org.apache.kafka.clients.consumer.ConsumerRecord
+
+
 /**
   * streaming data connector for kafka
   */
+
+
 trait KafkaStreamingDataConnector extends StreamingDataConnector {
 
-  type KD <: Decoder[K]
-  type VD <: Decoder[V]
-  type OUT = (K, V)
+  type OUT = ConsumerRecord[K, V]
 
   val config = dcParam.getConfig
 
@@ -46,11 +48,13 @@ trait KafkaStreamingDataConnector extends StreamingDataConnector {
     // register fan in
     streamingCacheClientOpt.foreach(_.registerFanIn)
 
-    val ds = stream match {
+    val ds = stream() match {
       case Success(dstream) => dstream
       case Failure(ex) => throw ex
     }
     ds.foreachRDD((rdd, time) => {
+      println(rdd)
+      println("************************")
       val ms = time.milliseconds
       val saveDfOpt = try {
         // coalesce partition number

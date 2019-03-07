@@ -58,6 +58,9 @@ object DataFrameOps {
       case Some(colName: String) => df.map(r => r.getAs[String](colName))
       case _ => df.map(_.getAs[String](0))
     }
+
+    println("===================")
+    println(sqlContext.read.json(rdd).show(10))
     sqlContext.read.json(rdd) // slow process
   }
 
