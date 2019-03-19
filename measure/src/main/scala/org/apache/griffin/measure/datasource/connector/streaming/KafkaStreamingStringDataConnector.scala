@@ -55,15 +55,9 @@ case class KafkaStreamingStringDataConnector(@transient sparkSession: SparkSessi
   }
 
   def transform(rdd: RDD[OUT]): Option[DataFrame] = {
-    if (rdd.isEmpty) None else {
+    if (rdd.isEmpty()) None else {
       try {
         val rowRdd = rdd.map(d => Row(d.value().toString))
-
-        rowRdd.foreach{ v: Row =>
-          println("Row")
-          println(v.toString())
-        }
-        println("########################")
         val df = sparkSession.createDataFrame(rowRdd, schema)
         Some(df)
       } catch {

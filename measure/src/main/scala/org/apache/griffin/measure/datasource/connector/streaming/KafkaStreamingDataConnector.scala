@@ -53,8 +53,6 @@ trait KafkaStreamingDataConnector extends StreamingDataConnector {
       case Failure(ex) => throw ex
     }
     ds.foreachRDD((rdd, time) => {
-      println(rdd)
-      println("************************")
       val ms = time.milliseconds
       val saveDfOpt = try {
         // coalesce partition number

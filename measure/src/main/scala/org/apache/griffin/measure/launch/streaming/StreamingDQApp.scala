@@ -21,12 +21,12 @@ package org.apache.griffin.measure.launch.streaming
 import java.util.{Date, Timer, TimerTask}
 import java.util.concurrent.{Executors, ThreadPoolExecutor, TimeUnit}
 
+import com.esotericsoftware.kryo.Kryo
+
 import scala.util.Try
-
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{SparkSession, SQLContext}
+import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.streaming.{Milliseconds, StreamingContext}
-
 import org.apache.griffin.measure.Loggable
 import org.apache.griffin.measure.configuration.dqdefinition._
 import org.apache.griffin.measure.configuration.enums._
@@ -62,6 +62,8 @@ case class StreamingDQApp(allParam: GriffinConfig) extends DQApp {
     val conf = new SparkConf().setAppName(metricName)
     conf.setAll(sparkParam.getConfig)
     conf.set("spark.sql.crossJoin.enabled", "true")
+    conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    conf.set("spark.kryo.registrator", "org.apache.griffin.measure.launch.streaming.MyRegistrator")
     sparkSession = SparkSession.builder().config(conf).enableHiveSupport().getOrCreate()
     sparkSession.sparkContext.setLogLevel(sparkParam.getLogLevel)
     sqlContext = sparkSession.sqlContext
@@ -266,4 +268,14 @@ case class StreamingDQApp(allParam: GriffinConfig) extends DQApp {
 
   }
 
+}
+
+
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.spark.serializer.KryoRegistrator
+
+class MyRegistrator extends KryoRegistrator {
+  override def registerClasses(kryo: Kryo): Unit = {
+    kryo.register(classOf[ConsumerRecord[Any, Any]])
+  }
 }
